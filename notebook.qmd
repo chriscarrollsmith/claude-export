@@ -136,7 +136,7 @@ def plot():
     plt.hist(lens, bins=20, color=CLAUDE_ORANGE, edgecolor='white')
     plt.ylabel('Frequency')
     plt.xlabel('Message Count / 2')
-    plt.grid(axis='y', linestyle='--', alpha=0.2)
+    plt.grid(axis='y', linestyle='-', alpha=0.2)
     plt.xticks(np.arange(0, 21) + 0.5, np.arange(0, 21))
     plt.title('Distribution of Conversation Lengths')
     ymin, ymax = plt.ylim()
@@ -166,7 +166,7 @@ def plot():
     plt.xlabel('Date')
     plt.ylabel('Number of Conversations')
     plt.xticks(rotation=45)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.grid(axis='y', linestyle='-', alpha=0.2)
     plt.tight_layout()
     plt.show()
 
@@ -196,7 +196,7 @@ def plot():
     plt.xlabel('Week')
     plt.ylabel('Number of Conversations')
     plt.xticks(rotation=45)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.grid(axis='y', linestyle='-', alpha=0.2)
     plt.tight_layout()
     plt.show()
 
@@ -235,7 +235,7 @@ def plot():
     plt.xlabel('Week')
     plt.ylabel('Number of Words')
     plt.xticks(rotation=45)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.grid(axis='y', linestyle='-', alpha=0.2)
     plt.tight_layout()
     plt.show()
 
