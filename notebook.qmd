@@ -497,3 +497,26 @@ def create_usage_comparison_table():
 
 create_usage_comparison_table()
 ```
+
+# Top Conversations
+
+```{python}
+def show_top_conversations(n=20):
+    # Create list of tuples with relevant data
+    convos = [(c.name, c.human_wordcount(), c.msg_count()) for c in cs]
+
+    # Create DataFrame and sort by wordcount
+    df = pd.DataFrame(convos, columns=['Title', 'Words', 'Messages'])
+    df = df.sort_values('Words', ascending=False).head(n)
+
+    # Reset index to show ranking
+    df = df.reset_index(drop=True)
+    df.index = df.index + 1  # Start from 1 instead of 0
+
+    # Format numbers with commas for readability
+    df['Words'] = df['Words'].map('{:,}'.format)
+
+    return df
+
+show_top_conversations()
+```
