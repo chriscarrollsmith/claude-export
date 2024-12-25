@@ -121,6 +121,8 @@ print(f"Words written to Claude: {total_word_count}")
 # Distribution of Conversation Lengths
 
 ```{python}
+#| label: dist
+
 from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
@@ -150,6 +152,8 @@ plot()
 # Conversations per Day
 
 ```{python}
+#| label: cpd
+
 def plot():
     timestamps: list[datetime] = [c.created_at for c in cs]
     dates = [ts.date() for ts in timestamps]
@@ -176,6 +180,8 @@ plot()
 # Conversations per Week
 
 ```{python}
+#| label: cpw
+
 def plot():
     timestamps = [c.created_at for c in cs]
     weekly_data = [(ts.isocalendar()[0], ts.isocalendar()[1]) for ts in timestamps]
@@ -205,6 +211,8 @@ plot()
 # Words per Week
 
 ```{python}
+#| label: wpw
+
 def plot():
     data: list[tuple[datetime, int]] = [(c.created_at, c.human_wordcount()) for c in cs]
     # Group by week
@@ -242,6 +250,8 @@ plot()
 # Cumulative Words
 
 ```{python}
+#| label: cw
+
 def plot():
     data = [(c.created_at, c.human_wordcount()) for c in cs]
     data.sort(key=lambda x: x[0])
