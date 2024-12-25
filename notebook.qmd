@@ -497,7 +497,8 @@ create_usage_comparison_table()
 # Top Conversations
 
 ```{python}
-def show_top_conversations(n=20):
+def show_top_conversations():
+    n = 30
     # Create list of tuples with relevant data
     convos = [(c.name, c.human_wordcount(), c.msg_count()) for c in cs]
 
