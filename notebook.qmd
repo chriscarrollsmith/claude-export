@@ -263,3 +263,63 @@ def plot():
 
 plot()
 ```
+
+# Usage Before and After Claude 3.6
+
+```{python}
+from datetime import UTC
+
+def plot():
+    release_date = datetime(2024, 10, 23, tzinfo=UTC)
+
+    # Split conversations into before and after
+    before_release = [c for c in cs if c.created_at.replace(tzinfo=UTC) < release_date]
+    after_release = [c for c in cs if c.created_at.replace(tzinfo=UTC) >= release_date]
+
+    # Calculate date ranges
+    if before_release:
+        before_days = (release_date - before_release[0].created_at.replace(tzinfo=UTC)).days
+    else:
+        before_days = 0
+
+    if after_release:
+        last_date = max(c.created_at.replace(tzinfo=UTC) for c in after_release)
+        after_days = (last_date - release_date).days + 1
+    else:
+        after_days = 0
+
+    # Calculate metrics
+    metrics = {
+        'Average Conversations per Day': (
+            len(before_release) / before_days if before_days > 0 else 0,
+            len(after_release) / after_days if after_days > 0 else 0
+        ),
+        'Average Messages per Day': (
+            sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
+            sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0
+        ),
+        'Average Words per Day': (
+            sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0,
+            sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
+        )
+    }
+
+    # Plot each metric separately
+    for metric, (before, after) in metrics.items():
+        plt.figure(figsize=FIGSIZE)
+        plt.bar(['Before 3.6', 'After 3.6'],
+                [before, after],
+                color=CLAUDE_ORANGE)
+
+        plt.title(metric, fontsize=14, pad=20)
+        plt.grid(axis='y', alpha=0.2)
+
+        # Add value labels on top of bars
+        for i, v in enumerate([before, after]):
+            plt.text(i, v, f'{v:.1f}', ha='center', va='bottom')
+
+        plt.tight_layout()
+        plt.show()
+
+plot()
+```
