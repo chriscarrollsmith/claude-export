@@ -148,7 +148,7 @@ def plot():
 plot()
 ```
 
-# Conversations per day
+# Conversations per Day
 
 ```{python}
 def plot():
@@ -175,7 +175,7 @@ def plot():
 plot()
 ```
 
-# Conversations per week
+# Conversations per Week
 
 ```{python}
 def plot():
@@ -205,7 +205,7 @@ def plot():
 plot()
 ```
 
-# Words per week
+# Words per Week
 
 ```{python}
 def plot():
