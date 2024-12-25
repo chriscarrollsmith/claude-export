@@ -357,6 +357,8 @@ plot()
 
 # Usage Before and After Claude 3.6
 
+Average usage per day:
+
 ```{python}
 import pandas as pd
 
@@ -401,7 +403,7 @@ def create_usage_comparison_table():
             sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0,
             sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
         ]
-    }, index=['Conversations per Day', 'Messages per Day', 'Words per Day']).round(1)
+    }, index=['Conversations', 'Messages', 'Words']).round(1)
 
     return df
 
