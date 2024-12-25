@@ -389,24 +389,19 @@ def create_usage_comparison_table():
     before_release, after_release, release_date = get_conversation_splits()
     before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
 
-    # Calculate all metrics
-    metrics = {
-        'Conversations per Day': (
+    # Create DataFrame with metrics as index
+    df = pd.DataFrame({
+        'Before 3.6': [
             len(before_release) / before_days if before_days > 0 else 0,
-            len(after_release) / after_days if after_days > 0 else 0
-        ),
-        'Messages per Day': (
             sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
-            sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0
-        ),
-        'Words per Day': (
-            sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0,
+            sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0
+        ],
+        'After 3.6': [
+            len(after_release) / after_days if after_days > 0 else 0,
+            sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0,
             sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
-        )
-    }
-
-    # Create DataFrame
-    df = pd.DataFrame(metrics, index=['Before 3.6', 'After 3.6']).round(1)
+        ]
+    }, index=['Conversations per Day', 'Messages per Day', 'Words per Day']).round(1)
 
     return df
 
