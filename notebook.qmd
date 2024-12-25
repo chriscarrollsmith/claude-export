@@ -322,6 +322,8 @@ def create_bar_plot(before_value, after_value, metric_title):
 ```
 
 ```{python}
+#| label: avpd
+
 def plot():
     """Plot average conversations per day."""
     before_release, after_release, release_date = get_conversation_splits()
@@ -336,6 +338,8 @@ plot()
 ```
 
 ```{python}
+#| label: ampd
+
 def plot():
     """Plot average messages per day."""
     before_release, after_release, release_date = get_conversation_splits()
@@ -350,6 +354,8 @@ plot()
 ```
 
 ```{python}
+#| label: awpd
+
 def plot():
     """Plot average words per day."""
     before_release, after_release, release_date = get_conversation_splits()
