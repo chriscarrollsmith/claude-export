@@ -164,7 +164,7 @@ plot()
 
 RELEASE_DATE: datetime = datetime(2024, 10, 23)
 RELEASE_WEEK = f"{RELEASE_DATE.isocalendar()[0]}-W{RELEASE_DATE.isocalendar()[1]:02d}"
-RELEASE_TEXT: str = "Claude 3.6 Release"
+RELEASE_TEXT: str = "Claude 3.6"
 
 def plot():
     timestamps = [c.created_at for c in cs]
