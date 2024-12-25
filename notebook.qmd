@@ -176,7 +176,7 @@ def plot():
     release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
     release_index = x_labels.index(release_week)
     plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_index, plt.ylim()[1] * 0.95, ' Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Conversation Frequency', fontsize=14, pad=20)
     plt.xlabel('Week')
     plt.ylabel('Number of Conversations')
