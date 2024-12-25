@@ -278,6 +278,39 @@ def plot():
 plot()
 ```
 
+# Cumulative Messages
+
+```{python}
+def plot():
+    # Get message timestamps sorted by time
+    messages = [(datetime.fromisoformat(m.created_at).replace(tzinfo=UTC), 1)
+                for c in cs
+                for m in c.messages if m.is_human()]
+    messages.sort(key=lambda x: x[0])
+
+    # Calculate cumulative sum
+    dates = [point[0] for point in messages]
+    cumulative_msgs = np.cumsum([point[1] for point in messages])
+
+    plt.figure(figsize=FIGSIZE)
+    plt.plot(dates, cumulative_msgs, color=CLAUDE_ORANGE, linewidth=2)
+
+    # Add release date line
+    release_date = datetime(2024, 10, 23, tzinfo=UTC)
+    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1], ' Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+
+    plt.title('Cumulative Messages Sent to Claude', fontsize=14, pad=20)
+    plt.xlabel('Date')
+    plt.ylabel('Total Messages')
+    plt.xticks(rotation=45)
+    plt.grid(True, alpha=0.2)
+    plt.tight_layout()
+    plt.show()
+
+plot()
+```
+
 # Cumulative Words
 
 ```{python}
