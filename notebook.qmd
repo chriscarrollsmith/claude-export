@@ -13,7 +13,7 @@ This is a notebook for exploring the Claude data export.
 ```{python}
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 import re
 
 @dataclass(frozen=True)
@@ -247,6 +247,37 @@ def plot():
 plot()
 ```
 
+# Cumulative Conversations
+
+```{python}
+def plot():
+    # Get creation timestamps sorted by time
+    timestamps = [(c.created_at.replace(tzinfo=UTC), 1) for c in cs]
+    timestamps.sort(key=lambda x: x[0])
+
+    # Calculate cumulative sum
+    dates = [point[0] for point in timestamps]
+    cumulative_convos = np.cumsum([point[1] for point in timestamps])
+
+    plt.figure(figsize=FIGSIZE)
+    plt.plot(dates, cumulative_convos, color=CLAUDE_ORANGE, linewidth=2)
+
+    # Add release date line
+    release_date = datetime(2024, 10, 23, tzinfo=UTC)
+    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1], ' Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+
+    plt.title('Cumulative Conversations with Claude', fontsize=14, pad=20)
+    plt.xlabel('Date')
+    plt.ylabel('Total Conversations')
+    plt.xticks(rotation=45)
+    plt.grid(True, alpha=0.2)
+    plt.tight_layout()
+    plt.show()
+
+plot()
+```
+
 # Cumulative Words
 
 ```{python}
@@ -277,7 +308,6 @@ plot()
 # Usage Before and After Claude 3.6
 
 ```{python}
-from datetime import UTC, datetime
 
 def get_conversation_splits():
     """Split conversations into before and after release date."""
