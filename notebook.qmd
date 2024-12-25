@@ -164,6 +164,7 @@ plot()
 
 RELEASE_DATE: datetime = datetime(2024, 10, 23)
 RELEASE_WEEK = f"{RELEASE_DATE.isocalendar()[0]}-W{RELEASE_DATE.isocalendar()[1]:02d}"
+RELEASE_TEXT: str = "Claude 3.6 Release"
 
 def plot():
     timestamps = [c.created_at for c in cs]
@@ -177,7 +178,7 @@ def plot():
     # Add release date line
     release_index = x_labels.index(RELEASE_WEEK)
     plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Conversation Frequency', fontsize=14, pad=20)
     plt.xlabel('Week')
     plt.ylabel('Number of Conversations')
@@ -216,7 +217,7 @@ def plot():
     if RELEASE_WEEK in x_labels:
         release_index = x_labels.index(RELEASE_WEEK)
         plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-        plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+        plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Message Count', fontsize=14, pad=20)
     plt.xlabel('Week')
     plt.ylabel('Number of Messages')
@@ -253,7 +254,7 @@ def plot():
     if RELEASE_WEEK in x_labels:
         release_index = x_labels.index(RELEASE_WEEK)
         plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-        plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+        plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Word Count', fontsize=14, pad=20)
     plt.xlabel('Week')
     plt.ylabel('Number of Words')
@@ -287,7 +288,7 @@ def plot():
     if RELEASE_WEEK in x_labels:
         release_index = x_labels.index(RELEASE_WEEK)
         plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-        plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+        plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Byte Count', fontsize=14, pad=20)
     plt.xlabel('Week')
     plt.ylabel('Number of Bytes')
@@ -319,7 +320,7 @@ def plot():
     # Add release date line
     release_date = datetime(2024, 10, 23, tzinfo=UTC)
     plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
 
     plt.title('Cumulative Conversations with Claude', fontsize=14, pad=20)
     plt.xlabel('Date')
@@ -352,7 +353,7 @@ def plot():
     # Add release date line
     release_date = datetime(2024, 10, 23, tzinfo=UTC)
     plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
 
     plt.title('Cumulative Messages Sent to Claude', fontsize=14, pad=20)
     plt.xlabel('Date')
@@ -380,7 +381,7 @@ def plot():
     plt.plot(dates, cumulative_words, color=CLAUDE_ORANGE, linewidth=2)
     release_date = datetime(2024, 10, 23)
     plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1], 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1], RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Cumulative Words Written to Claude', fontsize=14, pad=20)
     plt.xlabel('Date')
     plt.ylabel('Total Words')
@@ -407,7 +408,7 @@ def plot():
     plt.plot(dates, cumulative_bytes, color=CLAUDE_ORANGE, linewidth=2)
     release_date = datetime(2024, 10, 23)
     plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Cumulative Bytes Written to Claude', fontsize=14, pad=20)
     plt.xlabel('Date')
     plt.ylabel('Total Bytes')
