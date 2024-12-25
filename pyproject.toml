@@ -1,7 +1,7 @@
 [project]
 name = "claude-export"
 version = "0.1.0"
-description = "Add your description here"
+description = "Exploring Claude data exports."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
