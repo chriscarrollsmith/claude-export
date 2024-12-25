@@ -217,7 +217,7 @@ def plot():
     if release_week in x_labels:
         release_index = x_labels.index(release_week)
         plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-        plt.text(release_index, plt.ylim()[1] * 0.95, ' Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+        plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Message Count', fontsize=14, pad=20)
     plt.xlabel('Week')
     plt.ylabel('Number of Messages')
