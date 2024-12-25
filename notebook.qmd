@@ -358,6 +358,7 @@ plot()
 # Usage Before and After Claude 3.6
 
 ```{python}
+import pandas as pd
 
 def get_conversation_splits():
     """Split conversations into before and after release date."""
@@ -383,68 +384,31 @@ def calculate_date_ranges(before_release, after_release, release_date):
 
     return before_days, after_days
 
-def create_bar_plot(before_value, after_value, metric_title):
-    """Create and show a bar plot for a given metric."""
-    plt.figure(figsize=FIGSIZE)
-    plt.bar(['Before 3.6', 'After 3.6'],
-            [before_value, after_value],
-            color=CLAUDE_ORANGE)
-
-    plt.title(metric_title, fontsize=14, pad=20)
-    plt.grid(axis='y', alpha=0.2)
-
-    # Add value labels on top of bars
-    for i, v in enumerate([before_value, after_value]):
-        plt.text(i, v, f'{v:.1f}', ha='center', va='bottom')
-
-    plt.tight_layout()
-    plt.show()
-```
-
-```{python}
-#| label: avpd
-
-def plot():
-    """Plot average conversations per day."""
+def create_usage_comparison_table():
+    # Get the splits and date ranges
     before_release, after_release, release_date = get_conversation_splits()
     before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
 
-    before_value = len(before_release) / before_days if before_days > 0 else 0
-    after_value = len(after_release) / after_days if after_days > 0 else 0
+    # Calculate all metrics
+    metrics = {
+        'Conversations per Day': (
+            len(before_release) / before_days if before_days > 0 else 0,
+            len(after_release) / after_days if after_days > 0 else 0
+        ),
+        'Messages per Day': (
+            sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
+            sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0
+        ),
+        'Words per Day': (
+            sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0,
+            sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
+        )
+    }
 
-    create_bar_plot(before_value, after_value, 'Average Conversations per Day')
+    # Create DataFrame
+    df = pd.DataFrame(metrics, index=['Before 3.6', 'After 3.6']).round(1)
 
-plot()
-```
+    return df
 
-```{python}
-#| label: ampd
-
-def plot():
-    """Plot average messages per day."""
-    before_release, after_release, release_date = get_conversation_splits()
-    before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
-
-    before_value = sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0
-    after_value = sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0
-
-    create_bar_plot(before_value, after_value, 'Average Messages per Day')
-
-plot()
-```
-
-```{python}
-#| label: awpd
-
-def plot():
-    """Plot average words per day."""
-    before_release, after_release, release_date = get_conversation_splits()
-    before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
-
-    before_value = sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0
-    after_value = sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
-
-    create_bar_plot(before_value, after_value, 'Average Words per Day')
-
-plot()
+create_usage_comparison_table()
 ```
