@@ -15,3 +15,11 @@ Exploring the Claude data export.
 [ex]: https://support.anthropic.com/en/articles/9450526-how-can-i-export-my-claude-ai-data
 [Quatro]: https://quarto.org/
 [uv]: https://docs.astral.sh/uv/
+
+# Example Output
+
+![](/example/cpw.png)
+
+![](/example/wpw.png)
+
+![](/example/cw.png)
