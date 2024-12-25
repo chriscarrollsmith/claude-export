@@ -277,16 +277,19 @@ plot()
 # Usage Before and After Claude 3.6
 
 ```{python}
-from datetime import UTC
+from datetime import UTC, datetime
 
-def plot():
+def get_conversation_splits():
+    """Split conversations into before and after release date."""
     release_date = datetime(2024, 10, 23, tzinfo=UTC)
 
-    # Split conversations into before and after
     before_release = [c for c in cs if c.created_at.replace(tzinfo=UTC) < release_date]
     after_release = [c for c in cs if c.created_at.replace(tzinfo=UTC) >= release_date]
 
-    # Calculate date ranges
+    return before_release, after_release, release_date
+
+def calculate_date_ranges(before_release, after_release, release_date):
+    """Calculate the number of days before and after release."""
     if before_release:
         before_days = (release_date - before_release[0].created_at.replace(tzinfo=UTC)).days
     else:
@@ -298,38 +301,64 @@ def plot():
     else:
         after_days = 0
 
-    # Calculate metrics
-    metrics = {
-        'Average Conversations per Day': (
-            len(before_release) / before_days if before_days > 0 else 0,
-            len(after_release) / after_days if after_days > 0 else 0
-        ),
-        'Average Messages per Day': (
-            sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
-            sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0
-        ),
-        'Average Words per Day': (
-            sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0,
-            sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
-        )
-    }
+    return before_days, after_days
 
-    # Plot each metric separately
-    for metric, (before, after) in metrics.items():
-        plt.figure(figsize=FIGSIZE)
-        plt.bar(['Before 3.6', 'After 3.6'],
-                [before, after],
-                color=CLAUDE_ORANGE)
+def create_bar_plot(before_value, after_value, metric_title):
+    """Create and show a bar plot for a given metric."""
+    plt.figure(figsize=FIGSIZE)
+    plt.bar(['Before 3.6', 'After 3.6'],
+            [before_value, after_value],
+            color=CLAUDE_ORANGE)
 
-        plt.title(metric, fontsize=14, pad=20)
-        plt.grid(axis='y', alpha=0.2)
+    plt.title(metric_title, fontsize=14, pad=20)
+    plt.grid(axis='y', alpha=0.2)
 
-        # Add value labels on top of bars
-        for i, v in enumerate([before, after]):
-            plt.text(i, v, f'{v:.1f}', ha='center', va='bottom')
+    # Add value labels on top of bars
+    for i, v in enumerate([before_value, after_value]):
+        plt.text(i, v, f'{v:.1f}', ha='center', va='bottom')
 
-        plt.tight_layout()
-        plt.show()
+    plt.tight_layout()
+    plt.show()
+```
+
+```{python}
+def plot():
+    """Plot average conversations per day."""
+    before_release, after_release, release_date = get_conversation_splits()
+    before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
+
+    before_value = len(before_release) / before_days if before_days > 0 else 0
+    after_value = len(after_release) / after_days if after_days > 0 else 0
+
+    create_bar_plot(before_value, after_value, 'Average Conversations per Day')
+
+plot()
+```
+
+```{python}
+def plot():
+    """Plot average messages per day."""
+    before_release, after_release, release_date = get_conversation_splits()
+    before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
+
+    before_value = sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0
+    after_value = sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0
+
+    create_bar_plot(before_value, after_value, 'Average Messages per Day')
+
+plot()
+```
+
+```{python}
+def plot():
+    """Plot average words per day."""
+    before_release, after_release, release_date = get_conversation_splits()
+    before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
+
+    before_value = sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0
+    after_value = sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
+
+    create_bar_plot(before_value, after_value, 'Average Words per Day')
 
 plot()
 ```
