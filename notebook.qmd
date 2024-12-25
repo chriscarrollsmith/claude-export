@@ -1,0 +1,245 @@
+---
+title: Claude Export Analysis
+format:
+    html:
+        code-fold: true
+jupyter: python3
+---
+
+This is a notebook for exploring the Claude data export.
+
+# Parsing
+
+```{python}
+import json
+from dataclasses import dataclass
+from datetime import datetime
+import re
+
+@dataclass(frozen=True)
+class Attachment:
+    file_name: str
+    file_size: int
+    file_type: str
+    extracted_content: str
+
+    @staticmethod
+    def from_json(data):
+        return Attachment(
+            file_name=data["file_name"],
+            file_size=data["file_size"],
+            file_type=data["file_type"],
+            extracted_content=data["extracted_content"],
+        )
+
+@dataclass(frozen=True)
+class Files:
+    file_name: str
+
+    @staticmethod
+    def from_json(data):
+        return Files(
+            file_name=data["file_name"],
+        )
+
+@dataclass(frozen=True)
+class Message:
+    uuid: str
+    text: str
+    sender: str
+    created_at: str
+    attachments: list[Attachment]
+    files: list[Files]
+
+    @staticmethod
+    def from_json(data):
+        return Message(
+            uuid=data["uuid"],
+            text=data["text"],
+            sender=data["sender"],
+            created_at=data["created_at"],
+            attachments=[Attachment.from_json(d) for d in data["attachments"]],
+            files=[Files.from_json(d) for d in data["files"]],
+        )
+
+    def is_human(self):
+        return self.sender == "human"
+
+    def wordcount(self):
+        return len(re.findall(r'\w+', self.text))
+
+@dataclass(frozen=True)
+class Conversation:
+    uuid: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+    messages: list[Message]
+
+    @staticmethod
+    def from_json(data):
+        return Conversation(
+            uuid=data["uuid"],
+            name=data["name"],
+            created_at=datetime.fromisoformat(data["created_at"]),
+            updated_at=datetime.fromisoformat(data["updated_at"]),
+            messages=[Message.from_json(d) for d in data["chat_messages"]],
+        )
+
+    def msg_count(self):
+        return len([m for m in self.messages if m.is_human()])
+
+    def human_wordcount(self):
+        return sum([m.wordcount() for m in self.messages if m.is_human()])
+
+def load_data() -> list[Conversation]:
+    with open("inputs/conversations.json", "r") as stream:
+        data = json.load(stream)
+        cs = [Conversation.from_json(d) for d in data]
+        cs = sorted(cs, key=lambda c: c.created_at)
+        cs = [c for c in cs if c.msg_count() > 0]
+        return cs
+
+cs: list[Conversation] = load_data()
+```
+
+# Basic Stats
+
+```{python}
+print(f"Number of conversations: {len(cs)}")
+
+longest: Conversation = sorted(cs, key=lambda c: c.msg_count(), reverse=True)[0]
+print(f"Most messages: '{longest.name}' ({longest.msg_count()} messages)")
+
+total_msg_count: int = sum([c.msg_count() for c in cs])
+print(f"Messages sent: {total_msg_count}")
+
+total_word_count: int = sum([c.human_wordcount() for c in cs])
+print(f"Words written to Claude: {total_word_count}")
+```
+
+# Distribution of Conversation Lengths
+
+```{python}
+from collections import Counter
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import date
+
+CLAUDE_ORANGE: str = "#d97757"
+FIGSIZE: tuple[int, int] = (8, 6)
+
+def plot():
+    plt.style.use('seaborn-v0_8-whitegrid')
+    lens: list[int] = [c.msg_count() for c in cs]
+    lens: list[int] = [l for l in lens if l < 21]
+    plt.figure(figsize=FIGSIZE)
+    plt.hist(lens, bins=20, color=CLAUDE_ORANGE, edgecolor='white')
+    plt.ylabel('Frequency')
+    plt.xlabel('Message Count / 2')
+    plt.grid(axis='y', linestyle='--', alpha=0.2)
+    plt.xticks(np.arange(0, 21) + 0.5, np.arange(0, 21))
+    plt.title('Distribution of Conversation Lengths')
+    ymin, ymax = plt.ylim()
+    yticks = np.arange(0, ymax + 1, step=10)
+    plt.yticks(yticks)
+    plt.show()
+
+plot()
+```
+
+# Conversations per day
+
+```{python}
+def plot():
+    timestamps: list[datetime] = [c.created_at for c in cs]
+    dates = [ts.date() for ts in timestamps]
+    daily_counts = Counter(dates)
+    sorted_dates = sorted(daily_counts.keys())
+    counts = [daily_counts[date] for date in sorted_dates]
+    plt.figure(figsize=FIGSIZE)
+    plt.bar(sorted_dates, counts, width=0.8, alpha=0.7, color='#d97757')
+    # Add release date line
+    release_date = date(2024, 10, 23)
+    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1], ' Claude 3.6 Release', rotation=90,
+             va='top', ha='right', color='red', alpha=0.7)
+    plt.title('Daily Conversation Frequency', fontsize=14, pad=20)
+    plt.xlabel('Date')
+    plt.ylabel('Number of Conversations')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+plot()
+```
+
+# Conversations per week
+
+```{python}
+def plot():
+    timestamps = [c.created_at for c in cs]
+    weekly_data = [(ts.isocalendar()[0], ts.isocalendar()[1]) for ts in timestamps]
+    weekly_counts = Counter(weekly_data)
+    sorted_weeks = sorted(weekly_counts.keys())
+    counts = [weekly_counts[week] for week in sorted_weeks]
+    x_labels = [f"{year}-W{week:02d}" for year, week in sorted_weeks]
+    plt.figure(figsize=FIGSIZE)
+    plt.bar(x_labels, counts, width=0.8, alpha=0.7, color='#d97757')
+    # Add release date line
+    release_date = datetime(2024, 10, 23)
+    release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
+    release_index = x_labels.index(release_week)
+    plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
+    plt.text(release_index, plt.ylim()[1], ' Claude 3.6 Release', rotation=90,
+             va='top', ha='right', color='red', alpha=0.7)
+    plt.title('Weekly Conversation Frequency', fontsize=14, pad=20)
+    plt.xlabel('Week')
+    plt.ylabel('Number of Conversations')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+plot()
+```
+
+# Words per week
+
+```{python}
+def plot():
+    data: list[tuple[datetime, int]] = [(c.created_at, c.human_wordcount()) for c in cs]
+    # Group by week
+    weekly_counts = {}
+    for dt, word_count in data:
+        week_key = (dt.isocalendar()[0], dt.isocalendar()[1])  # (year, week)
+        weekly_counts[week_key] = weekly_counts.get(week_key, 0) + word_count
+
+    # Sort weeks and prepare data for plotting
+    sorted_weeks = sorted(weekly_counts.keys())
+    counts = [weekly_counts[week] for week in sorted_weeks]
+    x_labels = [f"{year}-W{week:02d}" for year, week in sorted_weeks]
+
+    plt.figure(figsize=FIGSIZE)
+    plt.bar(x_labels, counts, width=0.8, alpha=0.7, color='#d97757')
+
+    # Add release date line
+    release_date = datetime(2024, 10, 23)
+    release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
+    if release_week in x_labels:
+        release_index = x_labels.index(release_week)
+        plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
+        plt.text(release_index, plt.ylim()[1], ' Claude 3.6 Release', rotation=90,
+                va='top', ha='right', color='red', alpha=0.7)
+
+    plt.title('Weekly Word Count', fontsize=14, pad=20)
+    plt.xlabel('Week')
+    plt.ylabel('Number of Words')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+plot()
+```
