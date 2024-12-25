@@ -162,6 +162,9 @@ plot()
 ```{python}
 #| label: cpw
 
+RELEASE_DATE: datetime = datetime(2024, 10, 23)
+RELEASE_WEEK = f"{RELEASE_DATE.isocalendar()[0]}-W{RELEASE_DATE.isocalendar()[1]:02d}"
+
 def plot():
     timestamps = [c.created_at for c in cs]
     weekly_data = [(ts.isocalendar()[0], ts.isocalendar()[1]) for ts in timestamps]
@@ -172,9 +175,7 @@ def plot():
     plt.figure(figsize=FIGSIZE)
     plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
     # Add release date line
-    release_date = datetime(2024, 10, 23)
-    release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
-    release_index = x_labels.index(release_week)
+    release_index = x_labels.index(RELEASE_WEEK)
     plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
     plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Conversation Frequency', fontsize=14, pad=20)
@@ -212,10 +213,8 @@ def plot():
     plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
 
     # Add release date line
-    release_date = datetime(2024, 10, 23)
-    release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
-    if release_week in x_labels:
-        release_index = x_labels.index(release_week)
+    if RELEASE_WEEK in x_labels:
+        release_index = x_labels.index(RELEASE_WEEK)
         plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
         plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Message Count', fontsize=14, pad=20)
@@ -251,10 +250,8 @@ def plot():
     plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
 
     # Add release date line
-    release_date = datetime(2024, 10, 23)
-    release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
-    if release_week in x_labels:
-        release_index = x_labels.index(release_week)
+    if RELEASE_WEEK in x_labels:
+        release_index = x_labels.index(RELEASE_WEEK)
         plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
         plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Word Count', fontsize=14, pad=20)
@@ -287,10 +284,8 @@ def plot():
     plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
 
     # Add release date line
-    release_date = datetime(2024, 10, 23)
-    release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
-    if release_week in x_labels:
-        release_index = x_labels.index(release_week)
+    if RELEASE_WEEK in x_labels:
+        release_index = x_labels.index(RELEASE_WEEK)
         plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
         plt.text(release_index, plt.ylim()[1] * 0.95, 'Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Weekly Byte Count', fontsize=14, pad=20)
