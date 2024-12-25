@@ -149,7 +149,9 @@ def plot():
 plot()
 ```
 
-# Conversations per Week
+# Weekly Usage
+
+## Conversations
 
 ```{python}
 #| label: cpw
@@ -180,7 +182,7 @@ def plot():
 plot()
 ```
 
-# Words per Week
+## Words
 
 ```{python}
 #| label: wpw
@@ -219,7 +221,9 @@ def plot():
 plot()
 ```
 
-# Cumulative Conversations
+# Cumulative Usage
+
+## Conversations
 
 ```{python}
 def plot():
@@ -250,7 +254,7 @@ def plot():
 plot()
 ```
 
-# Cumulative Messages
+## Messages
 
 ```{python}
 def plot():
@@ -283,7 +287,7 @@ def plot():
 plot()
 ```
 
-# Cumulative Words
+## Words
 
 ```{python}
 #| label: cw
