@@ -464,13 +464,15 @@ def create_usage_comparison_table():
     before_values = [
         len(before_release) / before_days if before_days > 0 else 0,
         sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
-        sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0
+        sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0,
+        sum(c.human_bytecount() for c in before_release) / before_days if before_days > 0 else 0
     ]
 
     after_values = [
         len(after_release) / after_days if after_days > 0 else 0,
         sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0,
-        sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
+        sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0,
+        sum(c.human_bytecount() for c in after_release) / after_days if after_days > 0 else 0,
     ]
 
     # Calculate percentage changes
@@ -484,7 +486,7 @@ def create_usage_comparison_table():
         'Before 3.6': before_values,
         'After 3.6': after_values,
         'Change (%)': pct_changes
-    }, index=['Conversations', 'Messages', 'Words'])
+    }, index=['Conversations', 'Messages', 'Words', 'Bytes'])
 
     # Round appropriately (1 decimal for values, 0 decimals for percentages)
     df['Before 3.6'] = df['Before 3.6'].round(1)
