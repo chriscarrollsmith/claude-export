@@ -415,7 +415,7 @@ def create_usage_comparison_table():
         'Before 3.6': before_values,
         'After 3.6': after_values,
         'Change (%)': pct_changes
-    }, index=['Conversations per Day', 'Messages per Day', 'Words per Day'])
+    }, index=['Conversations', 'Messages', 'Words'])
 
     # Round appropriately (1 decimal for values, 0 decimals for percentages)
     df['Before 3.6'] = df['Before 3.6'].round(1)
