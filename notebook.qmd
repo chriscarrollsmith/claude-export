@@ -268,6 +268,42 @@ def plot():
 plot()
 ```
 
+## Bytes
+
+```{python}
+#| label: bpw
+
+def plot():
+    data: list[tuple[datetime, int]] = [(c.created_at, c.human_bytecount()) for c in cs]
+    weekly_counts = {}
+    for dt, bc in data:
+        week_key = (dt.isocalendar()[0], dt.isocalendar()[1])
+        weekly_counts[week_key] = weekly_counts.get(week_key, 0) + bc
+    sorted_weeks = sorted(weekly_counts.keys())
+    counts = [weekly_counts[week] for week in sorted_weeks]
+    x_labels = [f"{year}-W{week:02d}" for year, week in sorted_weeks]
+
+    plt.figure(figsize=FIGSIZE)
+    plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
+
+    # Add release date line
+    release_date = datetime(2024, 10, 23)
+    release_week = f"{release_date.isocalendar()[0]}-W{release_date.isocalendar()[1]:02d}"
+    if release_week in x_labels:
+        release_index = x_labels.index(release_week)
+        plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
+        plt.text(release_index, plt.ylim()[1], ' Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.title('Weekly Byte Count', fontsize=14, pad=20)
+    plt.xlabel('Week')
+    plt.ylabel('Number of Bytes')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='-', alpha=0.2)
+    plt.tight_layout()
+    plt.show()
+
+plot()
+```
+
 # Cumulative Usage
 
 ## Conversations
