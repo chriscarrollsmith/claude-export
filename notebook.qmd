@@ -381,7 +381,7 @@ def plot():
     plt.plot(dates, cumulative_words, color=CLAUDE_ORANGE, linewidth=2)
     release_date = datetime(2024, 10, 23)
     plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1], RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
     plt.title('Cumulative Words Written to Claude', fontsize=14, pad=20)
     plt.xlabel('Date')
     plt.ylabel('Total Words')
