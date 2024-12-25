@@ -391,19 +391,36 @@ def create_usage_comparison_table():
     before_release, after_release, release_date = get_conversation_splits()
     before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
 
-    # Create DataFrame with metrics as index
+    # Calculate metrics
+    before_values = [
+        len(before_release) / before_days if before_days > 0 else 0,
+        sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
+        sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0
+    ]
+
+    after_values = [
+        len(after_release) / after_days if after_days > 0 else 0,
+        sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0,
+        sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
+    ]
+
+    # Calculate percentage changes
+    pct_changes = [
+        ((after - before) / before * 100) if before > 0 else float('inf')
+        for before, after in zip(before_values, after_values)
+    ]
+
+    # Create DataFrame
     df = pd.DataFrame({
-        'Before 3.6': [
-            len(before_release) / before_days if before_days > 0 else 0,
-            sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
-            sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0
-        ],
-        'After 3.6': [
-            len(after_release) / after_days if after_days > 0 else 0,
-            sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0,
-            sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0
-        ]
-    }, index=['Conversations', 'Messages', 'Words']).round(1)
+        'Before 3.6': before_values,
+        'After 3.6': after_values,
+        'Change (%)': pct_changes
+    }, index=['Conversations per Day', 'Messages per Day', 'Words per Day'])
+
+    # Round appropriately (1 decimal for values, 0 decimals for percentages)
+    df['Before 3.6'] = df['Before 3.6'].round(1)
+    df['After 3.6'] = df['After 3.6'].round(1)
+    df['Change (%)'] = df['Change (%)'].round(0).astype(int)
 
     return df
 
