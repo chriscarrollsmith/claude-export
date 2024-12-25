@@ -238,3 +238,28 @@ def plot():
 
 plot()
 ```
+
+# Cumulative Words
+
+```{python}
+def plot():
+    data = [(c.created_at, c.human_wordcount()) for c in cs]
+    data.sort(key=lambda x: x[0])
+    dates = [point[0] for point in data]
+    words = [point[1] for point in data]
+    cumulative_words = np.cumsum(words)
+    plt.figure(figsize=FIGSIZE)
+    plt.plot(dates, cumulative_words, color=CLAUDE_ORANGE, linewidth=2)
+    release_date = datetime(2024, 10, 23)
+    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
+    plt.text(release_date, plt.ylim()[1], ' Claude 3.6 Release', rotation=90, va='top', ha='right', color='red', alpha=0.7)
+    plt.title('Cumulative Words Written to Claude', fontsize=14, pad=20)
+    plt.xlabel('Date')
+    plt.ylabel('Total Words')
+    plt.xticks(rotation=45)
+    plt.grid(True, alpha=0.2)
+    plt.tight_layout()
+    plt.show()
+
+plot()
+```
