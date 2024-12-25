@@ -68,6 +68,9 @@ class Message:
     def wordcount(self):
         return len(re.findall(r'\w+', self.text))
 
+    def bytecount(self):
+        return len(self.text)
+
 @dataclass(frozen=True)
 class Conversation:
     uuid: str
@@ -91,6 +94,9 @@ class Conversation:
 
     def human_wordcount(self):
         return sum([m.wordcount() for m in self.messages if m.is_human()])
+
+    def human_bytecount(self):
+        return sum([m.bytecount() for m in self.messages if m.is_human()])
 
 def load_data() -> list[Conversation]:
     with open("inputs/conversations.json", "r") as stream:
