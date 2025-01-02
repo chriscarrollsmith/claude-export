@@ -2,7 +2,7 @@ This is a notebook for processing exported Claude conversations to determine whi
 
 It's inspired by the [claude-export](https://github.com/eudoxia0/claude-export/) notebook by Github user [eudoxia0](https://github.com/eudoxia0).
 
-It uses the [DeepSeek V3](https://platform.deepseek.com/) API to analyze the conversations. DeepSeek's API is extremely low-cost and high-capacity, so we can parallelize the analysis and quickly get a result for hundreds of conversations at a cost of just a few cents per hundred conversations.
+It uses the [DeepSeek V3](https://platform.deepseek.com/) API to analyze the conversations. DeepSeek's API is extremely low-cost and high-capacity, so we can parallelize the analysis and quickly get a result for hundreds of conversations at a cost of just a few cents per hundred conversations. You will need a DeepSeek account and API key to use this notebook.
 
 # Usage
 
@@ -13,6 +13,7 @@ It uses the [DeepSeek V3](https://platform.deepseek.com/) API to analyze the con
 1. Install [[uv](https://docs.astral.sh/uv/)].
 1. `uv venv`
 1. `uv sync`
+1. Set your DeepSeek API key in the `DEEPSEEK_API_KEY` environment variable in `.env`.
 1. Edit the instructions in `get_value_score` in `notebook.qmd` to tell the AI what criteria you use to decide whether a conversation is valuable and worth archiving.
 1. `uv run quarto preview notebook.qmd`
 
