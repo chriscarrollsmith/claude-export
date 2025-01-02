@@ -12,3 +12,6 @@ wheels/
 # Quatro
 notebook_files
 notebook.html
+
+# Environment variables
+.env

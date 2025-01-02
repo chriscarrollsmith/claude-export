@@ -6,7 +6,11 @@ format:
 jupyter: python3
 ---
 
-This is a notebook for exploring the Claude data export.
+This is a notebook for processing the Claude data export to determine which of your conversations with the chatbot are valuable and worth archiving for future reference.
+
+It's inspired by the [claude-export](https://github.com/eudoxia0/claude-export/) notebook by Github user [eudoxia0](https://github.com/eudoxia0).
+
+It uses the [DeepSeek V3](https://platform.deepseek.com/) API to analyze the conversations. DeepSeek's API is extremely low-cost and high-capacity, so we can parallelize the analysis and quickly get a result for hundreds of conversations at a cost of just a few cents per hundred conversations.
 
 # Parsing
 
@@ -15,6 +19,15 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, UTC
 import re
+import os
+from dotenv import load_dotenv
+from litellm import completion
+import time
+import pandas as pd
+from pydantic import BaseModel
+from typing import List
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 @dataclass(frozen=True)
 class Attachment:
@@ -89,417 +102,167 @@ class Conversation:
             messages=[Message.from_json(d) for d in data["chat_messages"]],
         )
 
-    def msg_count(self):
-        return len([m for m in self.messages if m.is_human()])
-
-    def human_wordcount(self):
-        return sum([m.wordcount() for m in self.messages if m.is_human()])
-
-    def human_bytecount(self):
-        return sum([m.bytecount() for m in self.messages if m.is_human()])
-
 def load_data() -> list[Conversation]:
     with open("inputs/conversations.json", "r") as stream:
         data = json.load(stream)
         cs = [Conversation.from_json(d) for d in data]
         cs = sorted(cs, key=lambda c: c.created_at)
-        cs = [c for c in cs if c.msg_count() > 0]
+        cs = [c for c in cs if c.messages]
         return cs
 
 cs: list[Conversation] = load_data()
 ```
 
-# Basic Stats
+# Conversation Value Analysis
 
 ```{python}
-print(f"Number of conversations: {len(cs)}")
-
-longest: Conversation = sorted(cs, key=lambda c: c.msg_count(), reverse=True)[0]
-print(f"Most messages: '{longest.name}' ({longest.msg_count()} messages)")
-
-total_msg_count: int = sum([c.msg_count() for c in cs])
-print(f"Messages sent: {total_msg_count}")
-
-total_word_count: int = sum([c.human_wordcount() for c in cs])
-print(f"Words written to Claude: {total_word_count}")
-```
-
-# Distribution of Conversation Lengths
-
-```{python}
-#| label: dist
-
-from collections import Counter
-import matplotlib.pyplot as plt
-import numpy as np
-from datetime import date
-
-CLAUDE_ORANGE: str = "#d97757"
-FIGSIZE: tuple[int, int] = (8, 6)
-
-def plot():
-    lens: list[int] = [c.msg_count() for c in cs]
-    lens: list[int] = [l for l in lens if l < 21]
-    plt.figure(figsize=FIGSIZE)
-    plt.hist(lens, bins=20, color=CLAUDE_ORANGE, edgecolor='white')
-    plt.ylabel('Frequency')
-    plt.xlabel('Message Count / 2')
-    plt.grid(axis='y', linestyle='-', alpha=0.2)
-    plt.xticks(np.arange(0, 21) + 0.5, np.arange(0, 21))
-    ymin, ymax = plt.ylim()
-    yticks = np.arange(0, ymax + 1, step=10)
-    plt.yticks(yticks)
-    plt.show()
-
-plot()
-```
-
-# Weekly Usage
-
-## Conversations
-
-```{python}
-#| label: cpw
-
-RELEASE_DATE: datetime = datetime(2024, 10, 23)
-RELEASE_WEEK = f"{RELEASE_DATE.isocalendar()[0]}-W{RELEASE_DATE.isocalendar()[1]:02d}"
-RELEASE_TEXT: str = "Claude 3.6"
-
-def plot():
-    timestamps = [c.created_at for c in cs]
-    weekly_data = [(ts.isocalendar()[0], ts.isocalendar()[1]) for ts in timestamps]
-    weekly_counts = Counter(weekly_data)
-    sorted_weeks = sorted(weekly_counts.keys())
-    counts = [weekly_counts[week] for week in sorted_weeks]
-    x_labels = [f"{year}-W{week:02d}" for year, week in sorted_weeks]
-    plt.figure(figsize=FIGSIZE)
-    plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
-    # Add release date line
-    release_index = x_labels.index(RELEASE_WEEK)
-    plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.ylabel('Number of Conversations')
-    plt.xticks(rotation=-90, fontsize=8)
-    plt.grid(axis='y', linestyle='-', alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-## Messages
-
-```{python}
-#| label: mpw
-
-def plot():
-    # Get message counts by week
-    data: list[tuple[datetime, int]] = [(c.created_at, c.msg_count()) for c in cs]
-
-    # Group by week
-    weekly_counts = {}
-    for dt, msg_count in data:
-        week_key = (dt.isocalendar()[0], dt.isocalendar()[1])  # (year, week)
-        weekly_counts[week_key] = weekly_counts.get(week_key, 0) + msg_count
-
-    # Sort weeks and prepare data for plotting
-    sorted_weeks = sorted(weekly_counts.keys())
-    counts = [weekly_counts[week] for week in sorted_weeks]
-    x_labels = [f"{year}-W{week:02d}" for year, week in sorted_weeks]
-
-    plt.figure(figsize=FIGSIZE)
-    plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
-
-    # Add release date line
-    if RELEASE_WEEK in x_labels:
-        release_index = x_labels.index(RELEASE_WEEK)
-        plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-        plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.ylabel('Number of Messages')
-    plt.xticks(rotation=-90, fontsize=8)
-    plt.grid(axis='y', linestyle='-', alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-## Words
-
-```{python}
-#| label: wpw
-
-def plot():
-    data: list[tuple[datetime, int]] = [(c.created_at, c.human_wordcount()) for c in cs]
-    # Group by week
-    weekly_counts = {}
-    for dt, word_count in data:
-        week_key = (dt.isocalendar()[0], dt.isocalendar()[1])  # (year, week)
-        weekly_counts[week_key] = weekly_counts.get(week_key, 0) + word_count
-
-    # Sort weeks and prepare data for plotting
-    sorted_weeks = sorted(weekly_counts.keys())
-    counts = [weekly_counts[week] for week in sorted_weeks]
-    x_labels = [f"{year}-W{week:02d}" for year, week in sorted_weeks]
-
-    plt.figure(figsize=FIGSIZE)
-    plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
-
-    # Add release date line
-    if RELEASE_WEEK in x_labels:
-        release_index = x_labels.index(RELEASE_WEEK)
-        plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-        plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.ylabel('Number of Words')
-    plt.xticks(rotation=-90, fontsize=8)
-    plt.grid(axis='y', linestyle='-', alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-## Bytes
-
-```{python}
-#| label: bpw
-
-def plot():
-    data: list[tuple[datetime, int]] = [(c.created_at, c.human_bytecount()) for c in cs]
-    weekly_counts = {}
-    for dt, bc in data:
-        week_key = (dt.isocalendar()[0], dt.isocalendar()[1])
-        weekly_counts[week_key] = weekly_counts.get(week_key, 0) + bc
-    sorted_weeks = sorted(weekly_counts.keys())
-    counts = [weekly_counts[week] for week in sorted_weeks]
-    x_labels = [f"{year}-W{week:02d}" for year, week in sorted_weeks]
-
-    plt.figure(figsize=FIGSIZE)
-    plt.bar(x_labels, counts, width=0.8, color=CLAUDE_ORANGE)
-
-    # Add release date line
-    if RELEASE_WEEK in x_labels:
-        release_index = x_labels.index(RELEASE_WEEK)
-        plt.axvline(x=release_index, color='red', linestyle='--', alpha=0.7)
-        plt.text(release_index, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.ylabel('Number of Bytes')
-    plt.xticks(rotation=-90, fontsize=8)
-    plt.grid(axis='y', linestyle='-', alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-# Cumulative Usage
-
-## Conversations
-
-```{python}
-def plot():
-    # Get creation timestamps sorted by time
-    timestamps = [(c.created_at.replace(tzinfo=UTC), 1) for c in cs]
-    timestamps.sort(key=lambda x: x[0])
-
-    # Calculate cumulative sum
-    dates = [point[0] for point in timestamps]
-    cumulative_convos = np.cumsum([point[1] for point in timestamps])
-
-    plt.figure(figsize=FIGSIZE)
-    plt.plot(dates, cumulative_convos, color=CLAUDE_ORANGE, linewidth=2)
-
-    # Add release date line
-    release_date = datetime(2024, 10, 23, tzinfo=UTC)
-    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.ylabel('Total Conversations')
-    plt.ylim(bottom=0)
-    plt.xticks(rotation=45)
-    plt.grid(True, alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-## Messages
-
-```{python}
-def plot():
-    # Get message timestamps sorted by time
-    messages = [(datetime.fromisoformat(m.created_at).replace(tzinfo=UTC), 1)
-                for c in cs
-                for m in c.messages if m.is_human()]
-    messages.sort(key=lambda x: x[0])
-
-    # Calculate cumulative sum
-    dates = [point[0] for point in messages]
-    cumulative_msgs = np.cumsum([point[1] for point in messages])
-
-    plt.figure(figsize=FIGSIZE)
-    plt.plot(dates, cumulative_msgs, color=CLAUDE_ORANGE, linewidth=2)
-
-    # Add release date line
-    release_date = datetime(2024, 10, 23, tzinfo=UTC)
-    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.ylabel('Total Messages')
-    plt.ylim(bottom=0)
-    plt.xticks(rotation=45)
-    plt.grid(True, alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-## Words
-
-```{python}
-#| label: cw
-
-def plot():
-    data = [(c.created_at, c.human_wordcount()) for c in cs]
-    data.sort(key=lambda x: x[0])
-    dates = [point[0] for point in data]
-    words = [point[1] for point in data]
-    cumulative_words = np.cumsum(words)
-    plt.figure(figsize=FIGSIZE)
-    plt.plot(dates, cumulative_words, color=CLAUDE_ORANGE, linewidth=2)
-    release_date = datetime(2024, 10, 23)
-    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.ylabel('Words')
-    plt.ylim(bottom=0)
-    plt.xticks(rotation=45)
-    plt.grid(True, alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-## Bytes
-
-```{python}
-#| label: cb
-
-def plot():
-    data = [(c.created_at, c.human_bytecount()) for c in cs]
-    data.sort(key=lambda x: x[0])
-    dates = [point[0] for point in data]
-    bytes = [point[1] for point in data]
-    cumulative_bytes = np.cumsum(bytes)
-    plt.figure(figsize=FIGSIZE)
-    plt.plot(dates, cumulative_bytes, color=CLAUDE_ORANGE, linewidth=2)
-    release_date = datetime(2024, 10, 23)
-    plt.axvline(x=release_date, color='red', linestyle='--', alpha=0.7)
-    plt.text(release_date, plt.ylim()[1] * 0.95, RELEASE_TEXT, rotation=90, va='top', ha='right', color='red', alpha=0.7)
-    plt.xlabel('Date')
-    plt.ylabel('Total Bytes')
-    plt.ylim(bottom=0)
-    plt.xticks(rotation=45)
-    plt.grid(True, alpha=0.2)
-    plt.tight_layout()
-    plt.show()
-
-plot()
-```
-
-# Usage Before and After Claude 3.6
-
-Average usage per day:
-
-```{python}
-import pandas as pd
-
-def get_conversation_splits():
-    """Split conversations into before and after release date."""
-    release_date = datetime(2024, 10, 23, tzinfo=UTC)
-
-    before_release = [c for c in cs if c.created_at.replace(tzinfo=UTC) < release_date]
-    after_release = [c for c in cs if c.created_at.replace(tzinfo=UTC) >= release_date]
-
-    return before_release, after_release, release_date
-
-def calculate_date_ranges(before_release, after_release, release_date):
-    """Calculate the number of days before and after release."""
-    if before_release:
-        before_days = (release_date - before_release[0].created_at.replace(tzinfo=UTC)).days
-    else:
-        before_days = 0
-
-    if after_release:
-        last_date = max(c.created_at.replace(tzinfo=UTC) for c in after_release)
-        after_days = (last_date - release_date).days + 1
-    else:
-        after_days = 0
-
-    return before_days, after_days
-
-def create_usage_comparison_table():
-    # Get the splits and date ranges
-    before_release, after_release, release_date = get_conversation_splits()
-    before_days, after_days = calculate_date_ranges(before_release, after_release, release_date)
-
-    # Calculate metrics
-    before_values = [
-        len(before_release) / before_days if before_days > 0 else 0,
-        sum(c.msg_count() for c in before_release) / before_days if before_days > 0 else 0,
-        sum(c.human_wordcount() for c in before_release) / before_days if before_days > 0 else 0,
-        sum(c.human_bytecount() for c in before_release) / before_days if before_days > 0 else 0
-    ]
-
-    after_values = [
-        len(after_release) / after_days if after_days > 0 else 0,
-        sum(c.msg_count() for c in after_release) / after_days if after_days > 0 else 0,
-        sum(c.human_wordcount() for c in after_release) / after_days if after_days > 0 else 0,
-        sum(c.human_bytecount() for c in after_release) / after_days if after_days > 0 else 0,
-    ]
-
-    # Calculate percentage changes
-    pct_changes = [
-        ((after - before) / before * 100) if before > 0 else float('inf')
-        for before, after in zip(before_values, after_values)
-    ]
+# Load environment variables
+load_dotenv()
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+
+# Add rate limiting constants
+RATE_LIMIT_DELAY = 0.5  # seconds between API calls
+
+class ConversationAnalysis(BaseModel):
+    """Model for conversation value analysis response"""
+    score: int
+    reasoning: str
+
+def get_value_score(self) -> tuple[int, str]:
+    """
+    Analyzes the entire conversation to determine its future reference value for generating educational content or interesting research projects.
+    Returns tuple of (score, explanation)
+    """
+    response = completion(
+        model="deepseek/deepseek-chat",
+        messages=[
+        {
+            "role": "system",
+            "content": "You are an AI trained to evaluate conversation content for its future reference value for generating educational content or interesting research projects."
+        }, {
+            "role": "user",
+            "content": f"""Analyze this conversation and rate its value for future reference:
+
+            Conversation:
+            {self.messages}
+
+            Consider:
+            - Technical depth and complexity
+            - Reusability of solutions
+            - Novel insights or approaches
+            - Educational value
+            
+            Output your response in JSON format, with a reasoning field in which you think through whether the conversation is worth archiving for future reference and why, and a score field with your integer score. The score should be between 0 and 10, where 0 is the lowest value and 10 is the highest value.
+
+            Example JSON output for a conversation that is not at all valuable:
+            {{
+                "reasoning": "The conversation is a grinding, repetitive debugging session specific to one rather idiosyncratic project and does not provide any useful learning or even a resolution of the problem.",
+                "score": 0
+            }}
+
+            Example JSON output for a conversation that is somewhat valuable:
+            {{
+                "reasoning": "While not revolutionary, the conversation analyzes a social media trend and contains one or two insightful observations about how ideas spread. Could maybe be used as a case study or example in a future research project.",
+                "score": 5
+            }}
+
+            Example JSON output for a conversation that is highly valuable:
+            {{
+                "reasoning": "The conversation breaks new ground in the field of AI and provides a number of extraordinary insights that could drive an impactful future research project.",
+                "score": 10
+            }}"""
+        }],
+        format="json",
+        api_key=DEEPSEEK_API_KEY
+    )
+    # Extract just the JSON content from the response
+    content_dict = response.choices[0].message.content
+    
+    # Remove any markdown formatting if present
+    if content_dict.startswith('```'):
+        # Find the first and last occurrence of '```' and extract content between them
+        start = content_dict.find('\n') + 1
+        end = content_dict.rfind('```')
+        content_dict = content_dict[start:end].strip()
+    
+    # Then validate the properties object against our model
+    result = ConversationAnalysis.model_validate(json.loads(content_dict))
+    time.sleep(RATE_LIMIT_DELAY)
+    return (result.score, result.reasoning)
+
+Conversation.get_value_score = get_value_score
+
+def analyze_single_conversation(conversation, index, total):
+    """Analyze a single conversation with progress tracking"""
+    print(f"Analyzing conversation {index}/{total}: {conversation.name}")
+    try:
+        score, reasoning = conversation.get_value_score()
+        return (conversation.name, score, reasoning, conversation.created_at)
+    except Exception as e:
+        print(f"Error analyzing conversation {index}: {e}")
+        return (conversation.name, 0, f"Error: {str(e)}", conversation.created_at)
+
+def analyze_conversation_value():
+    """Analyze and rank conversations by their potential future value using parallel processing"""
+    print("Analyzing conversations in parallel... This may take a while.")
+    
+    total = len(cs)
+    
+    # Use ThreadPoolExecutor for parallel processing
+    max_workers = min(10, total)  # Adjust max_workers based on your API limits
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Create iterator of conversations with their indices
+        conversations_with_index = zip(cs, range(1, total + 1))
+        # Map the worker function directly without using partial
+        scores = list(executor.map(
+            lambda x: analyze_single_conversation(x[0], x[1], total), 
+            conversations_with_index
+        ))
 
     # Create DataFrame
-    df = pd.DataFrame({
-        'Before 3.6': before_values,
-        'After 3.6': after_values,
-        'Change (%)': pct_changes
-    }, index=['Conversations', 'Messages', 'Words', 'Bytes'])
+    df = pd.DataFrame(scores, columns=['Title', 'Value Score', 'Reasoning', 'Created At'])
 
-    # Round appropriately (1 decimal for values, 0 decimals for percentages)
-    df['Before 3.6'] = df['Before 3.6'].round(1)
-    df['After 3.6'] = df['After 3.6'].round(1)
-    df['Change (%)'] = df['Change (%)'].round(0).astype(int)
+    # Sort by value score descending
+    df = df.sort_values('Value Score', ascending=False)
+
+    # Reset index for ranking
+    df = df.reset_index(drop=True)
+    df.index = df.index + 1
 
     return df
 
-create_usage_comparison_table()
+if os.path.exists("outputs/conversation_value_analysis.csv"):
+    # Load the conversation ratings from CSV file if it exists
+    df = pd.read_csv("outputs/conversation_value_analysis.csv")
+else:
+    # Run the analysis and save the results to CSV file
+    df = analyze_conversation_value()
+    df.to_csv("outputs/conversation_value_analysis.csv", index=False)
+
+df['Created At'] = pd.to_datetime(df['Created At'])
+assert not df['Created At'].isna().any(), "Created At column contains NaT values"
+
+# Sort by date
+df = df.sort_values('Created At')
+
+df.head(10)
 ```
 
-# Top Conversations
+``` {python}
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-```{python}
-def show_top_conversations():
-    n = 30
-    # Create list of tuples with relevant data
-    convos = [(c.name, c.human_wordcount(), c.msg_count()) for c in cs]
+# Create a column for the moving average of the value score
+df['Moving Average'] = df['Value Score'].rolling(window=40).mean()
 
-    # Create DataFrame and sort by wordcount
-    df = pd.DataFrame(convos, columns=['Title', 'Words', 'Messages'])
-    df = df.sort_values('Words', ascending=False).head(n)
-
-    # Reset index to show ranking
-    df = df.reset_index(drop=True)
-    df.index = df.index + 1  # Start from 1 instead of 0
-
-    # Format numbers with commas for readability
-    df['Words'] = df['Words'].map('{:,}'.format)
-
-    return df
-
-show_top_conversations()
+# Plot moving average of conversation value over time
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='Created At', y='Moving Average', data=df)
+plt.title('Conversation Value Over Time (30-day Moving Average)')
+plt.xlabel('Date')
+plt.ylabel('Average Value Score')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.savefig("outputs/conversation_value_over_time.png")
 ```
