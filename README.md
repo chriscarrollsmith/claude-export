@@ -15,7 +15,8 @@ It uses the [DeepSeek V3](https://platform.deepseek.com/) API to analyze the con
 1. `uv sync`
 1. Set your DeepSeek API key in the `DEEPSEEK_API_KEY` environment variable in `.env`.
 1. Edit the instructions in `get_value_score` in `notebook.qmd` to tell the AI what criteria you use to decide whether a conversation is valuable and worth archiving.
-1. `uv run quarto preview notebook.qmd`
+1. `uv run quarto render notebook.qmd`
+1. Open the `notebook.html` file in your browser.
 
 # Example output
 

@@ -12,9 +12,50 @@ It's inspired by the [claude-export](https://github.com/eudoxia0/claude-export/)
 
 It uses the [DeepSeek V3](https://platform.deepseek.com/) API to analyze the conversations. DeepSeek's API is extremely low-cost and high-capacity, so we can parallelize the analysis and quickly get a result for hundreds of conversations at a cost of just a few cents per hundred conversations.
 
+# Setup
+
+Define your rating criteria in the `CONVERSATION_ANALYSIS_PROMPT` variable below.
+
+``` {python}
+CONVERSATION_ANALYSIS_PROMPT = """I am a computer scientist who is trying to determine which of my conversations with Claude are valuable and worth archiving for future reference. My future work will involve long-form and short-form writing projects, including educational content, research papers, and maybe a book at the intersection of computer science and philosophy. I also plan future software projects, with an emphasis on projects that could have large and positive societal impact.
+
+Analyze this conversation and rate its value for future reference:
+
+Conversation:
+{messages}
+
+Consider:
+- Does the conversation center around a big ideas that draw in readers or inspire a project with social impact?
+- Does it contain any novel insights or out-of-the-box approaches that are really surprising?
+- Does it have educational value, maybe as an example or case study of how to work through a programming problem?
+- Does it have biographical value for marking significant events in my life?
+
+A conversation that scores 10 is a conversation that contains deep, novel analysis of a really surprising big idea and could drive a future project. A 7 might be a discussion of a big idea that has less novelty, but maybe some useful insights. A 5 might be a bug fix that could be repurposed as a tutorial, or an explainer that I might want to refer back to. A 3 might be a coding solution that was technically interesting. but not particularly reusable. A 0 might be a conversation that devolved into a repetitive doom loop or that resulted in a dead end. Think of your score as a measure of archival value, with a median score of 5.
+
+Output your response in JSON format, with a reasoning field in which you think through whether the conversation is worth archiving for future reference and why, and a score field with your integer score. The score should be between 0 and 10, where 0 is the lowest value and 10 is the highest value.
+
+Example JSON output for a conversation that is not at all valuable:
+{{
+    "reasoning": "The conversation is a grinding, repetitive debugging session specific to one rather idiosyncratic project and does not provide any useful learning or even a resolution of the problem.",
+    "score": 0
+}}
+
+Example JSON output for a conversation that is somewhat valuable:
+{{
+    "reasoning": "While not revolutionary, the conversation analyzes a social media trend and contains one or two insightful observations about how ideas spread. Could maybe be used as a case study or example in a future research project.",
+    "score": 5
+}}
+
+Example JSON output for a conversation that is highly valuable:
+{{
+    "reasoning": "The conversation breaks new ground in the field of AI and provides a number of extraordinary insights that could drive an impactful future research project.",
+    "score": 10
+}}"""
+```
+
 # Parsing
 
-```{python}
+``` {python}
 import json
 from dataclasses import dataclass
 from datetime import datetime, UTC
@@ -28,6 +69,11 @@ from pydantic import BaseModel
 from typing import List
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+
+class ConversationAnalysis(BaseModel):
+    """Model for conversation value analysis response"""
+    score: int
+    reasoning: str
 
 @dataclass(frozen=True)
 class Attachment:
@@ -102,6 +148,47 @@ class Conversation:
             messages=[Message.from_json(d) for d in data["chat_messages"]],
         )
 
+    def get_value_score(self) -> tuple[int, str]:
+        """
+        Analyzes the entire conversation to determine its future reference value for generating educational content or interesting research projects.
+        Returns tuple of (score, explanation)
+        """
+        print("Analyzing conversation")
+        response = completion(
+            model="deepseek/deepseek-chat",
+            messages=[
+            {
+                "role": "system",
+                "content": "You are an AI trained to evaluate conversation content for its future reference value for generating educational content or interesting research projects."
+            }, {
+                "role": "user",
+                "content": CONVERSATION_ANALYSIS_PROMPT.format(messages=self.messages)
+            }],
+            format="json",
+            api_key=DEEPSEEK_API_KEY
+        )
+        # Extract just the JSON content from the response
+        content_dict = response.choices[0].message.content
+        
+        # Clean up the response to ensure valid JSON
+        try:
+            # If it's already valid JSON, parse it directly
+            result = ConversationAnalysis.model_validate(json.loads(content_dict))
+        except json.JSONDecodeError:
+            # If not, try to extract JSON from markdown or clean up the string
+            if '```json' in content_dict:
+                # Extract content between ```json and ```
+                json_str = content_dict.split('```json')[1].split('```')[0].strip()
+            else:
+                # Remove any leading/trailing whitespace and quotes
+                json_str = content_dict.strip().strip('"\'')
+            
+            # Parse the cleaned JSON string
+            result = ConversationAnalysis.model_validate(json.loads(json_str))
+        
+        time.sleep(RATE_LIMIT_DELAY)
+        return (result.score, result.reasoning)
+
 def load_data() -> list[Conversation]:
     with open("inputs/conversations.json", "r") as stream:
         data = json.load(stream)
@@ -122,75 +209,6 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # Add rate limiting constants
 RATE_LIMIT_DELAY = 0.5  # seconds between API calls
-
-class ConversationAnalysis(BaseModel):
-    """Model for conversation value analysis response"""
-    score: int
-    reasoning: str
-
-def get_value_score(self) -> tuple[int, str]:
-    """
-    Analyzes the entire conversation to determine its future reference value for generating educational content or interesting research projects.
-    Returns tuple of (score, explanation)
-    """
-    response = completion(
-        model="deepseek/deepseek-chat",
-        messages=[
-        {
-            "role": "system",
-            "content": "You are an AI trained to evaluate conversation content for its future reference value for generating educational content or interesting research projects."
-        }, {
-            "role": "user",
-            "content": f"""Analyze this conversation and rate its value for future reference:
-
-            Conversation:
-            {self.messages}
-
-            Consider:
-            - Technical depth and complexity
-            - Reusability of solutions
-            - Novel insights or approaches
-            - Educational value
-            
-            Output your response in JSON format, with a reasoning field in which you think through whether the conversation is worth archiving for future reference and why, and a score field with your integer score. The score should be between 0 and 10, where 0 is the lowest value and 10 is the highest value.
-
-            Example JSON output for a conversation that is not at all valuable:
-            {{
-                "reasoning": "The conversation is a grinding, repetitive debugging session specific to one rather idiosyncratic project and does not provide any useful learning or even a resolution of the problem.",
-                "score": 0
-            }}
-
-            Example JSON output for a conversation that is somewhat valuable:
-            {{
-                "reasoning": "While not revolutionary, the conversation analyzes a social media trend and contains one or two insightful observations about how ideas spread. Could maybe be used as a case study or example in a future research project.",
-                "score": 5
-            }}
-
-            Example JSON output for a conversation that is highly valuable:
-            {{
-                "reasoning": "The conversation breaks new ground in the field of AI and provides a number of extraordinary insights that could drive an impactful future research project.",
-                "score": 10
-            }}"""
-        }],
-        format="json",
-        api_key=DEEPSEEK_API_KEY
-    )
-    # Extract just the JSON content from the response
-    content_dict = response.choices[0].message.content
-    
-    # Remove any markdown formatting if present
-    if content_dict.startswith('```'):
-        # Find the first and last occurrence of '```' and extract content between them
-        start = content_dict.find('\n') + 1
-        end = content_dict.rfind('```')
-        content_dict = content_dict[start:end].strip()
-    
-    # Then validate the properties object against our model
-    result = ConversationAnalysis.model_validate(json.loads(content_dict))
-    time.sleep(RATE_LIMIT_DELAY)
-    return (result.score, result.reasoning)
-
-Conversation.get_value_score = get_value_score
 
 def analyze_single_conversation(conversation, index, total):
     """Analyze a single conversation with progress tracking"""
@@ -243,15 +261,17 @@ else:
 df['Created At'] = pd.to_datetime(df['Created At'])
 assert not df['Created At'].isna().any(), "Created At column contains NaT values"
 
-# Sort by date
-df = df.sort_values('Created At')
-
 df.head(10)
 ```
+
+# Plotting Mean Conversation Value Over Time
 
 ``` {python}
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+# Sort by date
+df = df.sort_values('Created At')
 
 # Create a column for the moving average of the value score
 df['Moving Average'] = df['Value Score'].rolling(window=40).mean()
