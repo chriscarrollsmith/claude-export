@@ -55,6 +55,8 @@ Example JSON output for a conversation that is highly valuable:
 
 # Parsing
 
+Load the conversation data from the `inputs/conversations.json` file.
+
 ``` {python}
 import json
 from dataclasses import dataclass
@@ -202,6 +204,8 @@ cs: list[Conversation] = load_data()
 
 # Conversation Value Analysis
 
+Analyze the conversations in parallel and save the results to a CSV file (or load from file if it already exists).
+
 ```{python}
 # Load environment variables
 load_dotenv()
@@ -266,6 +270,8 @@ df.head(10)
 
 # Plotting Mean Conversation Value Over Time
 
+Plot the mean conversation value over time, with a 30-day moving average.
+
 ``` {python}
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -288,6 +294,8 @@ plt.savefig("outputs/conversation_value_over_time.png")
 ```
 
 # Extracting the most valuable conversations
+
+Extract the most valuable conversations (score >= 9) from the list of conversations and save them to files in the `outputs/conversations` folder.
 
 ``` {python}
 def messages_to_markdown(messages):
