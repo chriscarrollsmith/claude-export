@@ -286,3 +286,52 @@ plt.xticks(rotation=45)
 plt.tight_layout()
 plt.savefig("outputs/conversation_value_over_time.png")
 ```
+
+# Extracting the most valuable conversations
+
+``` {python}
+def messages_to_markdown(messages):
+    """
+    Convert a list of Message objects into a single Markdown-formatted string.
+    """
+    lines = []
+
+    for msg in messages:
+        # A heading for each message with the sender and timestamp
+        lines.append(f"### Message from {msg.sender} on {msg.created_at}\n")
+        
+        # The main text of the message
+        # (If you need to handle code blocks differently, you could detect HTML or code here.)
+        lines.append(msg.text.strip() + "\n")
+
+        # If there are attachments, you could list them here
+        if msg.attachments:
+            lines.append("**Attachments:**")
+            for attach in msg.attachments:
+                lines.append(f"- {attach}")
+            lines.append("")
+
+        # If there are files, you could list them here
+        if msg.files:
+            lines.append("**Files:**")
+            for f in msg.files:
+                lines.append(f"- {f}")
+            lines.append("")
+
+        # A visual separator between messages
+        lines.append("---\n")
+
+    # Join everything into a single string
+    return "\n".join(lines)
+
+
+# For conversations in cs with names that match those >9 in df,
+# Write the conversation to a file
+if not os.path.exists("outputs/conversations"):
+    os.makedirs("outputs/conversations")
+for conversation in cs:
+    if conversation.name in df[df['Value Score'] >= 9]['Title'].values:
+        with open(f"outputs/conversations/{conversation.name}.txt", "w", encoding="utf-8") as stream:
+            stream.write(messages_to_markdown(conversation.messages))
+```
+

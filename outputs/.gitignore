@@ -1,1 +1,2 @@
-*.csv
+conversation_value*
+conversations/
