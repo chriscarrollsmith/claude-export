@@ -6,7 +6,7 @@ It uses the [DeepSeek V3](https://platform.deepseek.com/) API to analyze the con
 
 # Usage
 
-1. [Export][https://support.anthropic.com/en/articles/9450526-how-can-i-export-my-claude-ai-data] your Claude data.
+1. [Export](https://support.anthropic.com/en/articles/9450526-how-can-i-export-my-claude-ai-data) your Claude data.
 1. You will get an email with a link to download a .zip file (might have a different extension).
 1. Put the `conversations.json` file from the export in the `inputs/` folder.
 1. Install [[Quarto](https://quarto.org/)].
